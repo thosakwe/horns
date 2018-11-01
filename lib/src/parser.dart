@@ -33,6 +33,9 @@ class Parser<TokenType> {
 
   Token<TokenType> consume() {
     var token = peek();
+    if (token == null)
+      throw new StateError(
+          'Cannot call `consume()` after input stream has been completely read.');
     _index++;
     return token;
   }

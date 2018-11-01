@@ -12,7 +12,9 @@ main() async {
     if (lex.syntaxErrors.isNotEmpty) {
       lex.syntaxErrors.forEach(print);
     } else {
-      lex.tokens.forEach(print);
+      var parser = mathParser(lex);
+      var term = parser.parse('term');
+      print(term);
     }
   }
 }
@@ -49,7 +51,15 @@ Parser<TokenType> mathParser(LexerResult<TokenType> result) {
     ..rules.addAll({
       'term': new PrecedenceParser<TokenType, double>()
         ..prefix(TokenType.NUM, (_, token) => double.parse(token.span.text))
-        ..prefix(TokenType.PAREN_L, (p, _) {})
+        ..prefix(TokenType.PAREN_L, (p, token) {
+          var expr = p.parse<double>('term');
+          if (expr == null) {
+            p.syntaxErrors.add(new SyntaxError(SyntaxErrorSeverity.error,
+                token.span, "Missing term after `)`."));
+          } else {
+            return expr;
+          }
+        })
         ..infix(TokenType.TIMES, op((l, r) => l * r))
         ..infix(TokenType.DIV, op((l, r) => l / r))
         ..infix(TokenType.MOD, op((l, r) => l % r))
