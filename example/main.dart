@@ -31,9 +31,30 @@ final mathLexer = new Lexer<TokenType>()
   });
 
 Parser<TokenType> mathParser(LexerResult<TokenType> result) {
-  return new Parser(result)
+  double Function(Parser<TokenType>, Token<TokenType>, double) op(
+      double Function(double, double) f) {
+    return (p, token, left) {
+      var right = p.parse<double>('term');
+
+      if (right == null) {
+        p.syntaxErrors.add(new SyntaxError(SyntaxErrorSeverity.error,
+            token.span, "Missing term after operator `${token.span.text}`."));
+      } else {
+        return f(left, right);
+      }
+    };
+  }
+
+  return new Parser<TokenType>(result)
     ..rules.addAll({
-      'term': new PrecedenceParser<TokenType, double>(),
+      'term': new PrecedenceParser<TokenType, double>()
+        ..prefix(TokenType.NUM, (_, token) => double.parse(token.span.text))
+        ..prefix(TokenType.PAREN_L, (p, _) {})
+        ..infix(TokenType.TIMES, op((l, r) => l * r))
+        ..infix(TokenType.DIV, op((l, r) => l / r))
+        ..infix(TokenType.MOD, op((l, r) => l % r))
+        ..infix(TokenType.PLUS, op((l, r) => l + r))
+        ..infix(TokenType.MINUS, op((l, r) => l - r))
     });
 }
 
